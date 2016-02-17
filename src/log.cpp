@@ -150,9 +150,6 @@ namespace rhost {
             if (trim_log_file) {
                 // Logging happens often, so use a large buffer to avoid hitting the disk all the time.
                 setvbuf(trim_log_file, nullptr, _IOFBF, 0x100000);
-
-                // Start a thread that will flush the buffer periodically.
-                std::thread(log_flush_thread).detach();
             } else {
                 std::string error = "Error creating logfile: " + trim_log_filename + "\r\n";
                 fputs(error.c_str(), stderr);
@@ -163,14 +160,15 @@ namespace rhost {
             if (full_log_file) {
                 // Logging happens often, so use a large buffer to avoid hitting the disk all the time.
                 setvbuf(full_log_file, nullptr, _IOFBF, 0x100000);
-
-                // Start a thread that will flush the buffer periodically.
-                std::thread(log_flush_thread).detach();
-            }
-            else {
+            } else {
                 std::string error = "Error creating logfile: " + full_log_filename + "\r\n";
                 fputs(error.c_str(), stderr);
                 MessageBoxA(HWND_DESKTOP, error.c_str(), "Microsoft R Host", MB_OK | MB_ICONWARNING);
+            }
+
+            if (trim_log_file || full_log_file) {
+                // Start a thread that will flush the buffer periodically.
+                std::thread(log_flush_thread).detach();
             }
 
 #ifdef WIN32
