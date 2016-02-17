@@ -45,9 +45,11 @@ namespace rhost {
             const DWORD fatal_error_exception_code = 0xE0000001;
 #endif
 
+            const size_t TRIMMED_LOG_ENTRY_SIZE = 0x200;
+
             std::mutex log_mutex, terminate_mutex;
-            std::string log_filename, stackdump_filename, fulldump_filename;
-            FILE* logfile;
+            std::string trim_log_filename, full_log_filename, stackdump_filename, fulldump_filename;
+            FILE *trim_log_file, *full_log_file;
             int indent;
 
             void log_flush_thread() {
@@ -138,20 +140,35 @@ namespace rhost {
                 // get started at the same time.
                 filename += "_pid" + std::to_string(getpid());
 
-                log_filename = filename + ".log";
+                trim_log_filename = filename + ".trim.log";
+                full_log_filename = filename + ".full.log";
                 stackdump_filename = filename + ".stack.dmp";
                 fulldump_filename = filename + ".full.dmp";
             }
         
-            logfile = _fsopen(log_filename.c_str(), "wc", _SH_DENYWR);
-            if (logfile) {
+            trim_log_file = _fsopen(trim_log_filename.c_str(), "wc", _SH_DENYWR);
+            if (trim_log_file) {
                 // Logging happens often, so use a large buffer to avoid hitting the disk all the time.
-                setvbuf(logfile, nullptr, _IOFBF, 0x100000);
+                setvbuf(trim_log_file, nullptr, _IOFBF, 0x100000);
 
                 // Start a thread that will flush the buffer periodically.
                 std::thread(log_flush_thread).detach();
             } else {
-                std::string error = "Error creating logfile: " + std::string(log_filename) + "\r\n";
+                std::string error = "Error creating logfile: " + trim_log_filename + "\r\n";
+                fputs(error.c_str(), stderr);
+                MessageBoxA(HWND_DESKTOP, error.c_str(), "Microsoft R Host", MB_OK | MB_ICONWARNING);
+            }
+
+            full_log_file = _fsopen(full_log_filename.c_str(), "wc", _SH_DENYWR);
+            if (full_log_file) {
+                // Logging happens often, so use a large buffer to avoid hitting the disk all the time.
+                setvbuf(full_log_file, nullptr, _IOFBF, 0x100000);
+
+                // Start a thread that will flush the buffer periodically.
+                std::thread(log_flush_thread).detach();
+            }
+            else {
+                std::string error = "Error creating logfile: " + full_log_filename + "\r\n";
                 fputs(error.c_str(), stderr);
                 MessageBoxA(HWND_DESKTOP, error.c_str(), "Microsoft R Host", MB_OK | MB_ICONWARNING);
             }
@@ -169,16 +186,69 @@ namespace rhost {
             va_copy(va2, va);
 #endif
 
-            if (logfile) {
+            va_list va3;
+            if (trim_log_file) {
+                va_copy(va3, va);
+            }
+
+            if (full_log_file) {
                 for (int i = 0; i < indent; ++i) {
-                    fputc('\t', logfile);
+                    fputc('\t', full_log_file);
                 }
-                vfprintf(logfile, format, va);
+                vfprintf(full_log_file, format, va);
 
 #ifndef NDEBUG
                 // In Debug builds, flush on every write so that log is always up-to-date.
                 // In Release builds, we rely on flush_log being called on process shutdown.
-                fflush(logfile);
+                fflush(full_log_file);
+#endif
+            }
+
+            if (trim_log_file) {
+                char buffer[0x10000];
+                int newlines = 0;
+
+                // Print to a large temp buffer first.
+                if (vsnprintf(buffer, sizeof buffer, format, va3) < 0) {
+                    // If it didn't fit even there, add at least one newline, since we won't
+                    // be able to count ones that were at the end.
+                    ++newlines;
+                }
+
+                // Trim the ouput if necessary.
+                size_t len = strlen(buffer);
+                if (len > TRIMMED_LOG_ENTRY_SIZE) {
+                    // Count newlines at the end first before we trim them away.
+                    for (char* p = buffer + len; p > buffer;) {
+                        if (*--p == '\n') {
+                            ++newlines;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    size_t n = TRIMMED_LOG_ENTRY_SIZE;
+                    buffer[n++] = ' ';
+                    buffer[n++] = '.';
+                    buffer[n++] = '.';
+                    buffer[n++] = '.';
+                    buffer[n++] = '\0';
+                }
+
+                for (int i = 0; i < indent; ++i) {
+                    fputc('\t', trim_log_file);
+                }
+
+                fputs(buffer, trim_log_file);
+
+                for (int i = 0; i < newlines; ++i) {
+                    fputc('\n', trim_log_file);
+                }
+
+#ifndef NDEBUG
+                // In Debug builds, flush on every write so that log is always up-to-date.
+                // In Release builds, we rely on flush_log being called on process shutdown.
+                fflush(full_log_file);
 #endif
             }
 
@@ -207,8 +277,11 @@ namespace rhost {
 
         void flush_log() {
             std::lock_guard<std::mutex> lock(log_mutex);
-            if (logfile) {
-                fflush(logfile);
+            if (full_log_file) {
+                fflush(full_log_file);
+            }
+            if (trim_log_file) {
+                fflush(trim_log_file);
             }
         }
 
