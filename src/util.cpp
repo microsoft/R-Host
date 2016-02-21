@@ -65,7 +65,7 @@ namespace rhost {
         // from most fonts since in Unicode 0x80-0xA0 does not contain visible characters.
         size_t mbstowcs_withFancyQuotes(wchar_t *wc, char *s, size_t n) {
             size_t nc = 0;
-            for (int i = 0, j = 0; nc < n && s[i] != '\0'; i++, j++) {
+            for (int i = 0, j = 0; nc < n && s[i] != '\0'; j++) {
                 int char_size = mbtowc(wc + j, s + i, n - i);
                 if (char_size == 1) {
                     switch (wc[j]) {
@@ -83,7 +83,7 @@ namespace rhost {
                             break;
                     }
                 }
-                i += char_size - 1;
+                i += char_size;
                 nc++;
             }
             wc[nc] = L'\0';
