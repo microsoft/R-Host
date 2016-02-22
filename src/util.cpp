@@ -1,24 +1,24 @@
 /* ****************************************************************************
- *
- * Copyright (c) Microsoft Corporation. All rights reserved.
- *
- *
- * This file is part of Microsoft R Host.
- *
- * Microsoft R Host is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 2 of the License, or
- * (at your option) any later version.
- *
- * Microsoft R Host is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Microsoft R Host.  If not, see <http://www.gnu.org/licenses/>.
- *
- * ***************************************************************************/
+*
+* Copyright (c) Microsoft Corporation. All rights reserved.
+*
+*
+* This file is part of Microsoft R Host.
+*
+* Microsoft R Host is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 2 of the License, or
+* (at your option) any later version.
+*
+* Microsoft R Host is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Microsoft R Host.  If not, see <http://www.gnu.org/licenses/>.
+*
+* ***************************************************************************/
 
 #include "stdafx.h"
 #include "util.h"
@@ -56,40 +56,6 @@ namespace rhost {
             return convert.to_bytes(ws);
         }
 #endif
-        // Effectively mbstowcs but also converts fancy quotes specified in the Unicode
-        // control range specifically, 0x91-0x94. These are 'Latin 1 supplement' characters
-        // and respectively are left/right single quotes and left/right double quotes.
-        // Example: https://everythingfonts.com/unicode/0x0091. Calling dQuote on a Latin
-        // string puts 0x93 and 0x94 quotes around the string and stock mbstowcs does not
-        // handle them correctly. Instead, it just makes 0x91 into U+0091 which is missing
-        // from most fonts since in Unicode 0x80-0xA0 does not contain visible characters.
-        size_t mbstowcs_withFancyQuotes(wchar_t *wc, char *s, size_t n) {
-            size_t nc = 0;
-            for (int i = 0, j = 0; nc < n && s[i] != '\0'; j++) {
-                int char_size = mbtowc(wc + j, s + i, n - i);
-                if (char_size == 1) {
-                    switch (wc[j]) {
-                        case 0x0091:
-                            wc[j] = 0x2018; // Left single quote
-                            break;
-                        case 0x0092:
-                            wc[j] = 0x2019; // Right single quote
-                            break;
-                        case 0x0093:
-                            wc[j] = 0x201C; // Left double quote
-                            break;
-                        case 0x0094:
-                            wc[j] = 0x201D; // Right double quote
-                            break;
-                    }
-                }
-                i += char_size;
-                nc++;
-            }
-            wc[nc] = L'\0';
-            return nc;
-        }
-
         // Taken from R gnuwin32\console.c. Converts string that is partially
         // ANSI and partially UTF-8 to Unicode. UTF-8 fragment is bounded by
         // 02 FF FE at the start and by 03 FF FE at the end.
@@ -120,7 +86,7 @@ namespace rhost {
                 pe += 3;
                 nc += RString2Unicode(wc + nc, pe, n - nc);
             } else {
-                nc = mbstowcs_withFancyQuotes(wc, s, n);
+                nc = mbstowcs(wc, s, n);
             }
             return nc;
         }
