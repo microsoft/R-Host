@@ -106,6 +106,7 @@ namespace rhost {
             class ide_device : public graphics_device {
             public:
                 static std::unique_ptr<ide_device> create(std::string device_type, double width, double height, double resolution);
+                static void copy_device_attributes(pDevDesc source_dd, pDevDesc target_dd);
 
                 ide_device(pDevDesc dd, std::string device_type, double width, double height, double resolution);
                 virtual ~ide_device();
@@ -427,46 +428,7 @@ namespace rhost {
                 // Our ide device needs to look like an instance of the 
                 // file device, so we copy most of its attributes
                 // (don't overwrite the callbacks that are already assigned).
-                dd->left = file_dd->left;
-                dd->right = file_dd->right;
-                dd->bottom = file_dd->bottom;
-                dd->top = file_dd->top;
-
-                dd->clipLeft = file_dd->clipLeft;
-                dd->clipRight = file_dd->clipRight;
-                dd->clipBottom = file_dd->clipBottom;
-                dd->clipTop = file_dd->clipTop;
-
-                dd->xCharOffset = file_dd->xCharOffset;
-                dd->yCharOffset = file_dd->yCharOffset;
-                dd->yLineBias = file_dd->yLineBias;
-
-                dd->ipr[0] = file_dd->ipr[0];
-                dd->ipr[1] = file_dd->ipr[1];
-                dd->cra[0] = file_dd->cra[0];
-                dd->cra[1] = file_dd->cra[1];
-                dd->gamma = file_dd->gamma;
-
-                dd->canClip = file_dd->canClip;
-                dd->canChangeGamma = file_dd->canChangeGamma;
-                dd->canHAdj = file_dd->canHAdj;
-
-                dd->startps = file_dd->startps;
-                dd->startcol = file_dd->startcol;
-                dd->startfill = file_dd->startfill;
-                dd->startlty = file_dd->startlty;
-                dd->startfont = file_dd->startfont;
-                dd->startgamma = file_dd->startgamma;
-
-                dd->hasTextUTF8 = file_dd->hasTextUTF8;
-                dd->wantSymbolUTF8 = file_dd->wantSymbolUTF8;
-                dd->useRotatedTextInContour = file_dd->useRotatedTextInContour;
-
-                dd->haveTransparency = file_dd->haveTransparency;
-                dd->haveTransparentBg = file_dd->haveTransparentBg;
-                dd->haveRaster = file_dd->haveRaster;
-                dd->haveCapture = file_dd->haveCapture;
-                dd->haveLocator = file_dd->haveLocator;
+                copy_device_attributes(file_dd, dd);
 
                 dd->displayListOn = R_TRUE;
                 dd->canGenMouseDown = R_FALSE;
@@ -477,6 +439,49 @@ namespace rhost {
                 dd->deviceSpecific = xdd.get();
 
                 return xdd;
+            }
+
+            void ide_device::copy_device_attributes(pDevDesc source_dd, pDevDesc target_dd) {
+                target_dd->left = source_dd->left;
+                target_dd->right = source_dd->right;
+                target_dd->bottom = source_dd->bottom;
+                target_dd->top = source_dd->top;
+
+                target_dd->clipLeft = source_dd->clipLeft;
+                target_dd->clipRight = source_dd->clipRight;
+                target_dd->clipBottom = source_dd->clipBottom;
+                target_dd->clipTop = source_dd->clipTop;
+
+                target_dd->xCharOffset = source_dd->xCharOffset;
+                target_dd->yCharOffset = source_dd->yCharOffset;
+                target_dd->yLineBias = source_dd->yLineBias;
+
+                target_dd->ipr[0] = source_dd->ipr[0];
+                target_dd->ipr[1] = source_dd->ipr[1];
+                target_dd->cra[0] = source_dd->cra[0];
+                target_dd->cra[1] = source_dd->cra[1];
+                target_dd->gamma = source_dd->gamma;
+
+                target_dd->canClip = source_dd->canClip;
+                target_dd->canChangeGamma = source_dd->canChangeGamma;
+                target_dd->canHAdj = source_dd->canHAdj;
+
+                target_dd->startps = source_dd->startps;
+                target_dd->startcol = source_dd->startcol;
+                target_dd->startfill = source_dd->startfill;
+                target_dd->startlty = source_dd->startlty;
+                target_dd->startfont = source_dd->startfont;
+                target_dd->startgamma = source_dd->startgamma;
+
+                target_dd->hasTextUTF8 = source_dd->hasTextUTF8;
+                target_dd->wantSymbolUTF8 = source_dd->wantSymbolUTF8;
+                target_dd->useRotatedTextInContour = source_dd->useRotatedTextInContour;
+
+                target_dd->haveTransparency = source_dd->haveTransparency;
+                target_dd->haveTransparentBg = source_dd->haveTransparentBg;
+                target_dd->haveRaster = source_dd->haveRaster;
+                target_dd->haveCapture = source_dd->haveCapture;
+                target_dd->haveLocator = source_dd->haveLocator;
             }
 
             void ide_device::activate() {
@@ -682,6 +687,25 @@ namespace rhost {
                 _width = width;
                 _height = height;
                 _resolution = resolution;
+
+                // Recreate the file device to obtain its new attributes,
+                // based on the new width/height/resolution.
+                auto file_dd = get_or_create_file_device();
+
+                // Update the ide device with attributes based
+                // on the new width/height/resolution.
+                // https://github.com/Microsoft/RTVS/issues/2017
+                copy_device_attributes(file_dd, device_desc);
+
+                // Kill the temporary file device and delete the file it opened on disk
+                auto file_device_filename = _file_device_filename;
+                output_and_kill_file_device();
+                if (!file_device_filename.empty()) {
+                    try {
+                        std::tr2::sys::remove(file_device_filename);
+                    } catch (const std::tr2::sys::filesystem_error&) {
+                    }
+                }
 
                 _history.resize(width, height, resolution);
             }
