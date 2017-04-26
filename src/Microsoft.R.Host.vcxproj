@@ -108,6 +108,7 @@
       <AdditionalIncludeDirectories>..\lib\picojson</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <DisableSpecificWarnings>4200</DisableSpecificWarnings>
+      <PreprocessToFile>false</PreprocessToFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -133,6 +134,7 @@
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <DisableSpecificWarnings>4200</DisableSpecificWarnings>
       <ControlFlowGuard>false</ControlFlowGuard>
+      <PreprocessToFile>false</PreprocessToFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -163,6 +165,7 @@
       <AdditionalIncludeDirectories>..\lib\picojson</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <DisableSpecificWarnings>4200</DisableSpecificWarnings>
+      <PreprocessToFile>false</PreprocessToFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -193,6 +196,7 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <DisableSpecificWarnings>4200</DisableSpecificWarnings>
       <ControlFlowGuard>Guard</ControlFlowGuard>
+      <PreprocessToFile>false</PreprocessToFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -214,6 +218,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="blobs.cpp" />
+    <ClCompile Include="devicewrapper.cpp" />
     <ClCompile Include="exports.cpp" />
     <ClCompile Include="grdeviceside.cpp" />
     <ClCompile Include="grdevicesxaml.cpp" />
@@ -234,6 +239,7 @@
   <ItemGroup>
     <ClInclude Include="blobs.h" />
     <ClInclude Include="detours.h" />
+    <ClInclude Include="devicewrapper.h" />
     <ClInclude Include="exports.h" />
     <ClInclude Include="grdevices.h" />
     <ClInclude Include="grdeviceside.h" />
