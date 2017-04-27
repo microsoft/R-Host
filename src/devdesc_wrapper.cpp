@@ -20,42 +20,50 @@
 *
 * ***************************************************************************/
 
-#include "devicewrapper.h"
+#include <cassert>
+#include "devdesc_wrapper.h"
 #include "msvcrt.h"
 
 namespace rhost {
     namespace grdevices {
-        devicewrapper::devicewrapper() {
+        devdesc_wrapper::devdesc_wrapper() {
             _ver = R_GE_getVersion();
         }
 
-
-        devicewrapper::devicewrapper(pDevDesc dd) {
+        devdesc_wrapper::devdesc_wrapper(pDevDesc dd) {
             _ver = R_GE_getVersion();
             switch (_ver) {
+            case 10:
+                _u.dd_10 = reinterpret_cast<DevDesc10*>(dd);
+                break;
             case 11:
-                dd_11 = reinterpret_cast<DevDesc11*>(dd);
+                _u.dd_11 = reinterpret_cast<DevDesc11*>(dd);
                 break;
             case 12:
-                dd_12 = reinterpret_cast<DevDesc12*>(dd);
+                _u.dd_12 = reinterpret_cast<DevDesc12*>(dd);
+                break;
+            default:
+                RHOST_DEV_VERSION_ASSERT(_ver);
                 break;
             }
         }
 
-        void* devicewrapper::allocate() {
+        void* devdesc_wrapper::allocate() {
             int ver = R_GE_getVersion();
             switch (ver) {
+            case 10: return rhost::msvcrt::calloc(1, sizeof(DevDesc10));
             case 11: return rhost::msvcrt::calloc(1, sizeof(DevDesc11));
             case 12: return rhost::msvcrt::calloc(1, sizeof(DevDesc12));
-            default: return nullptr;
+            default: RHOST_DEV_VERSION_ASSERT(ver); return nullptr;
             }
         }
 
-        pDevDesc devicewrapper::get_pDevDesc() {
+        pDevDesc devdesc_wrapper::get_pDevDesc() {
             switch (_ver) {
-            case 11: return reinterpret_cast<pDevDesc>(dd_11);
-            case 12: return reinterpret_cast<pDevDesc>(dd_12);
-            default: return nullptr;
+            case 10: return reinterpret_cast<pDevDesc>(_u.dd_10);
+            case 11: return reinterpret_cast<pDevDesc>(_u.dd_11);
+            case 12: return reinterpret_cast<pDevDesc>(_u.dd_12);
+            default: RHOST_DEV_VERSION_ASSERT(_ver); return nullptr;
             }
         }
 

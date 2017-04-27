@@ -172,12 +172,12 @@ namespace rhost {
 
             private:
                 std::tr2::sys::path get_render_file_path();
-                devicewrapper get_or_create_file_device();
-                devicewrapper create_file_device();
+                devdesc_wrapper get_or_create_file_device();
+                devdesc_wrapper create_file_device();
                 void sync_file_device();
                 void set_pending_render();
 
-                static devicewrapper create_file_device(const std::string& device_type, const std::tr2::sys::path& filename, double width, double height, double resolution);
+                static devdesc_wrapper create_file_device(const std::string& device_type, const std::tr2::sys::path& filename, double width, double height, double resolution);
 
             private:
                 boost::uuids::uuid _device_id;
@@ -468,7 +468,7 @@ namespace rhost {
             ///////////////////////////////////////////////////////////////////////
 
             std::unique_ptr<ide_device> ide_device::create(const boost::uuids::uuid& device_id, std::string device_type, double width, double height, double resolution) {
-                pDevDesc dd = static_cast<pDevDesc>(devicewrapper::allocate());
+                pDevDesc dd = static_cast<pDevDesc>(devdesc_wrapper::allocate());
 
                 auto xdd = std::make_unique<ide_device>(dd, device_id, device_type, width, height, resolution);
 
@@ -481,7 +481,7 @@ namespace rhost {
                 // (don't overwrite the callbacks that are already assigned).
                 copy_device_attributes(file_dd, dd);
 
-                devicewrapper dw(dd);
+                devdesc_wrapper dw(dd);
                 dw.set_displayListOn(R_TRUE);
                 dw.set_canGenMouseDown(R_FALSE);
                 dw.set_canGenMouseMove(R_FALSE);
@@ -495,8 +495,8 @@ namespace rhost {
             }
 
             void ide_device::copy_device_attributes(pDevDesc source_dd, pDevDesc target_dd) {
-                devicewrapper td(target_dd);
-                devicewrapper sd(source_dd);
+                devdesc_wrapper td(target_dd);
+                devdesc_wrapper sd(source_dd);
 
                 td.set_left(sd.get_left());
                 td.set_right(sd.get_right());
@@ -879,15 +879,15 @@ namespace rhost {
                 return file_path;
             }
 
-            devicewrapper ide_device::get_or_create_file_device() {
+            devdesc_wrapper ide_device::get_or_create_file_device() {
                 if (_file_device == nullptr) {
                     _file_device = create_file_device().get_pDevDesc();
                     sync_file_device();
                 }
-                return devicewrapper(_file_device);
+                return devdesc_wrapper(_file_device);
             }
 
-            devicewrapper ide_device::create_file_device() {
+            devdesc_wrapper ide_device::create_file_device() {
                 _file_device_filename = get_render_file_path();
                 return create_file_device(_file_device_type, _file_device_filename, _width, _height, _resolution);
             }
@@ -992,7 +992,7 @@ namespace rhost {
                 return _history.get_active();
             }
 
-            devicewrapper ide_device::create_file_device(const std::string& device_type, const std::tr2::sys::path& filename, double width, double height, double resolution) {
+            devdesc_wrapper ide_device::create_file_device(const std::string& device_type, const std::tr2::sys::path& filename, double width, double height, double resolution) {
                 auto expr = boost::format("%1%(filename='%2%', width=%3%, height=%4%, res=%5%)") % device_type % filename.generic_string() % width % height % resolution;
 
                 // Create the file device via the public R API
@@ -1011,7 +1011,7 @@ namespace rhost {
                     dev_desc = ge_dev_desc->dev;
                 });
 
-                return devicewrapper(dev_desc);
+                return devdesc_wrapper(dev_desc);
             }
 
             static void process_pending_render(bool immediately) {

@@ -73,8 +73,8 @@ RHOST_DEV_WRAPPER_DECL_SET(member_type, member) \
 RHOST_DEV_WRAPPER_DECL_GET_ARRAY(member_type, member) \
 RHOST_DEV_WRAPPER_DECL_SET_ARRAY(member_type, member) \
 
-#define RHOST_DEV_DEREF(ver, member) dd_##ver->##member
-#define RHOST_DEV_DEREF_ARRAY(ver, member) dd_##ver->##member[index]
+#define RHOST_DEV_DEREF(ver, member) _u.dd_##ver->##member
+#define RHOST_DEV_DEREF_ARRAY(ver, member) _u.dd_##ver->##member[index]
 
 #define RHOST_DEV_GET_CASE(ver, member) \
     case ver: return RHOST_DEV_DEREF(ver, member); \
@@ -89,20 +89,26 @@ RHOST_DEV_WRAPPER_DECL_SET_ARRAY(member_type, member) \
     case ver: RHOST_DEV_DEREF_ARRAY(ver, member) = value; break; \
 
 #define RHOST_DEV_GET_CASE_COMMON(member) \
-    RHOST_DEV_GET_CASE(R_33_GE_version, member) \
-    RHOST_DEV_GET_CASE(R_34_GE_version, member) \
+    RHOST_DEV_GET_CASE(10, member) \
+    RHOST_DEV_GET_CASE(11, member) \
+    RHOST_DEV_GET_CASE(12, member) \
 
 #define RHOST_DEV_SET_CASE_COMMON(member) \
-    RHOST_DEV_SET_CASE(R_33_GE_version, member) \
-    RHOST_DEV_SET_CASE(R_34_GE_version, member) \
+    RHOST_DEV_SET_CASE(10, member) \
+    RHOST_DEV_SET_CASE(11, member) \
+    RHOST_DEV_SET_CASE(12, member) \
 
 #define RHOST_DEV_GET_CASE_COMMON_ARRAY(member) \
-    RHOST_DEV_GET_CASE_ARRAY(R_33_GE_version, member) \
-    RHOST_DEV_GET_CASE_ARRAY(R_34_GE_version, member) \
+    RHOST_DEV_GET_CASE_ARRAY(10, member) \
+    RHOST_DEV_GET_CASE_ARRAY(11, member) \
+    RHOST_DEV_GET_CASE_ARRAY(12, member) \
 
 #define RHOST_DEV_SET_CASE_COMMON_ARRAY(member) \
-    RHOST_DEV_SET_CASE_ARRAY(R_33_GE_version, member) \
-    RHOST_DEV_SET_CASE_ARRAY(R_34_GE_version, member) \
+    RHOST_DEV_SET_CASE_ARRAY(10, member) \
+    RHOST_DEV_SET_CASE_ARRAY(11, member) \
+    RHOST_DEV_SET_CASE_ARRAY(12, member) \
+
+#define RHOST_DEV_VERSION_ASSERT(v) assert(v >= 10 && v <= 12)
 
 #define RHOST_DEV_GET_CASE_V12(member) \
     RHOST_DEV_GET_CASE(12, member) \
@@ -111,32 +117,34 @@ RHOST_DEV_WRAPPER_DECL_SET_ARRAY(member_type, member) \
     RHOST_DEV_SET_CASE(12, member) \
 
 #define RHOST_DEV_WRAPPER_DEFINE_GET(macro, member_type, member) \
-member_type devicewrapper::get_##member() { \
+member_type devdesc_wrapper::get_##member() { \
     switch(_ver) { \
     macro(member) \
-    default: return static_cast<member_type>(0); \
+    default: RHOST_DEV_VERSION_ASSERT(_ver); return static_cast<member_type>(0); \
     } \
 } \
 
 #define RHOST_DEV_WRAPPER_DEFINE_SET(macro, member_type, member) \
-void devicewrapper::set_##member(member_type value) { \
+void devdesc_wrapper::set_##member(member_type value) { \
     switch(_ver) { \
     macro(member) \
+    default: RHOST_DEV_VERSION_ASSERT(_ver); break; \
     } \
 } \
 
 #define RHOST_DEV_WRAPPER_DEFINE_GET_ARRAY(macro, member_type, member) \
-member_type devicewrapper::get_##member(int index) { \
+member_type devdesc_wrapper::get_##member(int index) { \
     switch(_ver) { \
     macro(member) \
-    default: return static_cast<member_type>(0); \
+    default: RHOST_DEV_VERSION_ASSERT(_ver); return static_cast<member_type>(0); \
     } \
 } \
 
 #define RHOST_DEV_WRAPPER_DEFINE_SET_ARRAY(macro, member_type, member) \
-void devicewrapper::set_##member(int index, member_type value) { \
+void devdesc_wrapper::set_##member(int index, member_type value) { \
     switch(_ver) { \
     macro(member) \
+    default: RHOST_DEV_VERSION_ASSERT(_ver); break; \
     } \
 } \
 
@@ -227,19 +235,23 @@ macro(Rboolean, canGenIdle) \
 namespace rhost {
     namespace grdevices {
 
-        class devicewrapper
+        class devdesc_wrapper
         {
         private:
-            _DevDesc11* dd_11;
-            _DevDesc12* dd_12;
+            union {
+                pDevDesc10 dd_10;
+                pDevDesc11 dd_11;
+                pDevDesc12 dd_12;
+            } _u;
             int _ver;
         public:
-            devicewrapper();
-            devicewrapper(pDevDesc dd);
+            devdesc_wrapper();
+            devdesc_wrapper(pDevDesc dd);
 
             static void* allocate();
             pDevDesc get_pDevDesc();
 
+            // V11 is compatible with V10 so no need to add V10 specifically
             RHOST_DEV_DESC_V11(RHOST_DEV_WRAPPER_DECL_GETSET);
             RHOST_DEV_DESC_V11_ARRAY(RHOST_DEV_WRAPPER_DECL_GETSET_ARRAY);
             RHOST_DEV_DESC_V12(RHOST_DEV_WRAPPER_DECL_GETSET);

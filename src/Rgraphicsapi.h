@@ -39,8 +39,6 @@
 
 #include "Rapi.h"
 
-#define R_GE_version 10
-
 #define R_32_GE_version 10
 #define R_33_GE_version 11
 #define R_34_GE_version 12
@@ -99,8 +97,10 @@ extern "C" {
 
     typedef R_GE_gcontext* pGEcontext;
 
+    typedef struct _DevDesc11 DevDesc10; // V11 is compatible with V10
     typedef struct _DevDesc11 DevDesc11;
     typedef struct _DevDesc12 DevDesc12;
+    typedef DevDesc11* pDevDesc10; // V11 is compatible with V10
     typedef DevDesc11* pDevDesc11;
     typedef DevDesc12* pDevDesc12;
     typedef DevDesc12* pDevDesc;

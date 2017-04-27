@@ -231,13 +231,13 @@ namespace rhost {
             }
 
             std::unique_ptr<xaml_device> xaml_device::create(std::string filename, double width, double height) {
-                pDevDesc dd = static_cast<pDevDesc>(devicewrapper::allocate());
+                pDevDesc dd = static_cast<pDevDesc>(devdesc_wrapper::allocate());
 
                 int startfill = R_RGB(255, 255, 255);
 
                 auto xdd = std::make_unique<xaml_device>(dd, filename, width, height, r_color_to_xaml(startfill), DEFAULT_FONT_NAME);
 
-                devicewrapper dw(dd);
+                devdesc_wrapper dw(dd);
                 dw.set_left(0);
                 dw.set_right(width);
                 dw.set_bottom(height);
