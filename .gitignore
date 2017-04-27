@@ -85,3 +85,4 @@ src/GeneratedVersion.h
 src/Microsoft.R.Host.VC.opendb
 src/Microsoft.R.Host.VC.VC.opendb
 src/Microsoft.R.Host.VC.db
+src/.vs/
